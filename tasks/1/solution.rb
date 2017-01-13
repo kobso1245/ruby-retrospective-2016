@@ -11,21 +11,36 @@ FORMULAS = {
 }.freeze
 
 TEMPERATURES = {
-	'water' => [0, 100],
-	'ethanol' => [-114, 78.37],
-	'gold' => [1064, 2700],
-	'silver' => [961.8, 2162],
-	'copper' => [1085, 2567]
+  'water' => {
+    melting_point: 0,
+    boiling_point: 100
+  },
+  'ethanol' => {
+    melting_point: -114,
+    boiling_point: 78.37
+  },
+  'gold' => {
+    melting_point: 1_064,
+    boiling_point: 2_700
+  },
+  'silver' => {
+    melting_point: 961.8,
+    boiling_point: 2_162
+  },
+  'copper' => {
+    melting_point: 1_085,
+    boiling_point: 2_567
+  }
 }.freeze
 
 def convert_between_temperature_units(input_degrees, input_unit, output_unit)
-	FORMULAS[input_unit + output_unit].call(input_degrees).round(2)
+  FORMULAS[input_unit + output_unit].call(input_degrees).round(2)
 end
 
 def melting_point_of_substance(substance, output_unit)
-	FORMULAS['C' + output_unit].call(TEMPERATURES[substance][0])
+  FORMULAS['C' + output_unit].call(TEMPERATURES[substance][:melting_point])
 end
 
 def boiling_point_of_substance(substance, output_unit)
-	FORMULAS['C' + output_unit].call(TEMPERATURES[substance][1])
+  FORMULAS['C' + output_unit].call(TEMPERATURES[substance][:boiling_point])
 end

@@ -13,7 +13,8 @@ task :check_all do
 end
 
 task :check, :task_id do |_, arguments|
-  task_id = arguments[:task_id]
+  #task_id = arguments[:task_id]
+  task_id = 1
 
   Dir.chdir "tasks/#{task_id}" do
     system 'bundle exec rubocop solution.rb' or exit(1)
