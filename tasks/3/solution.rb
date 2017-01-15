@@ -1,56 +1,64 @@
-def determine_type(value)
-  return "with_pars" if value.include? "="
-  return "opt" if value[0] == '-' || value.include?("--")
-  "arg"
+def extract_params(val)
+  stripped = val.tr('-', '')
+  if val[0..1] == '--'
+    return (val.include? '=') ? stripped.split('=') : [stripped, true]
+  elsif val[0] == '-'
+    return (val.size > 2) ? [stripped[0], stripped[1..-1]] : [stripped, true]
+  else
+    return ['argument']
+  end
 end
 
-def optionize(elems, val, command_runner)
-  fst, sec = val.split("=")
-  sec = true unless sec
-  elems.each do |x|
-    x[-1].call(command_runner, sec) if x.include? fst.tr('-', '')
-  end
+def optionize(elems, cmd_runner, val_ind)
+  command, value = val_ind
+  elems.select { |cmd| cmd.include? command }.first[-1].call(cmd_runner, value)
+end
+
+def add_elem(struct, arguments, block)
+  struct.push(arguments)
+  struct[-1].push(block) if block
 end
 
 class CommandParser
   def initialize(command_name)
     @cmd = command_name
     @opts = []
-    @with_pars = []
+    @opts_with_pars = []
     @args = []
     @parsed = {}
   end
 
   def argument(argument, &block)
-    @args.push([argument])
-    @args[-1].push(block) if block_given?
+    add_elem(@args, [argument], block)
   end
 
   def option(sh_name, l_name, hlp, &block)
-    @opts.push([sh_name, l_name, hlp])
-    @opts[-1].push(block) if block_given?
+    add_elem(@opts, [sh_name, l_name, hlp], block)
   end
 
   def option_with_parameter(sh_name, l_name, hlp, value, &block)
-    @with_pars.push([sh_name, l_name, hlp, value])
-    @with_pars[-1].push(block) if block_given?
+    add_elem(@opts_with_pars, [sh_name, l_name, hlp, value], block)
   end
 
   def help
     out = ""
-    out << "Usage: #{@cmd} " + @args.map { |x| "[#{x[0]}]" }.join(" ") + "\n"
-    @opts.each { |x, y, z| out << "    -#{x}, --#{y} #{z}\n" }
-    @with_pars.each { |x, y, z, p| out << "    -#{x}, --#{y}=#{p} #{z}\n" }
+    out << "Usage: #{@cmd}" + @args.map { |arg| " [#{arg[0]}]" }.join("")
+    @opts.each do |sh_v, long_v, msg|
+      out << "\n    -#{sh_v}, --#{long_v} #{msg}"
+    end
+    @opts_with_pars.each do |sh_v, long_v, msg, param|
+      out << "\n    -#{sh_v}, --#{long_v}=#{param} #{msg}"
+    end
     out
   end
 
   def parse(command_runner, argv)
-    with_pars_cp = @with_pars.dup
-    argv.each_with_index do |val, _|
-      case determine_type(val)
-      when "with_pars" then optionize(with_pars_cp, val, command_runner)
-      when "opt" then optionize(@opts, val, command_runner)
-      when "arg" then @args.shift[-1].call(command_runner, val)
+    combined_options = @opts_with_pars + @opts
+    argv.each do |val|
+      params = extract_params(val)
+      case params.size
+      when 1 then @args.shift[-1].call(command_runner, val)
+      else optionize(combined_options, command_runner, params)
       end
     end
     @parsed.merge!(command_runner)
