@@ -34,21 +34,25 @@ RSpec.describe 'Version' do
       expect(Version.new('1.0') > Version.new('0.1.0')).to be true
       expect(Version.new('1.1.0') > Version.new('1.0.1')).to be true
       expect(Version.new('0.0.1') > Version.new('0')).to be true
+      expect(Version.new('0.0.1') < Version.new('0')).to be false
     end
     it 'can properly check for lower than' do
       expect(Version.new('1.0') < Version.new('1.1.0')).to be true
       expect(Version.new('1.0.1') < Version.new('1.1')).to be true
       expect(Version.new('0') < Version.new('0.0.1')).to be true
+      expect(Version.new('0') > Version.new('0.0.1')).to be false
     end
     it 'can properly check for greater and eq than' do
       expect(Version.new('1.0') >= Version.new('0.1.0')).to be true
       expect(Version.new('1.1.0') >= Version.new('1.0.1')).to be true
       expect(Version.new('0.0.1') >= Version.new('0')).to be true
+      expect(Version.new('0.0.1') <= Version.new('0')).to be false
     end
     it 'can properly check for lower and eq than' do
       expect(Version.new('1.0') <= Version.new('0.1.0')).not_to be true
       expect(Version.new('1.1.0') <= Version.new('1.1')).to be true
       expect(Version.new('0.0.1') <= Version.new('0.1.0')).to be true
+      expect(Version.new('0.0.1') >= Version.new('0.1.0')).to be false
     end
     it 'can properly check for <=>' do
       expect(Version.new('1.0') <=> Version.new('0.1.0')).to eq 1
@@ -79,9 +83,11 @@ RSpec.describe 'Version' do
     end
     it 'does not change the inner structure' do
       ver = Version.new('1.2.3.4')
-      stringified = ver.to_s
-      ver.components(2)
-      expect(stringified == ver.to_s).to be true
+      expected_correct_result = [1, 2, 3, 4]
+      result = ver.components
+      result << 3
+      final_result = ver.components
+      expect(expected_correct_result == final_result).to be true
     end
     it 'uses optional argument to retrieve number of components' do
       expect(Version.new('1.3.0').components(3)).to eq [1, 3, 0]
@@ -91,10 +97,22 @@ RSpec.describe 'Version' do
     end
   end
   describe 'Version::Range' do
+    describe '#initialize' do
+      it 'can costruct version ranges from strings' do
+        range = Version::Range.new("0", "0.1")
+        result = [
+          '0', '0.0.1', '0.0.2', '0.0.3', '0.0.4', '0.0.5', '0.0.6',
+          '0.0.7', '0.0.8', '0.0.9'
+        ]
+        expect(range.to_a).to eq result
+      end
+    end
     describe '#include?' do
       it 'can check if a version is included in a range' do
         range = Version::Range.new(Version.new('1'), Version.new('2'))
         expect(range.include?(Version.new('1.5'))).to be true
+        expect(range.include?(Version.new('3'))).to be false
+        expect(range.include?(Version.new('0.1'))).to be false
       end
     end
     describe '#to_a' do
